@@ -1,17 +1,25 @@
 from rest_framework import viewsets
 from rest_framework import permissions
+from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import ScopedRateThrottle
+
 
 from .models import Achievement, Cat, User
-
 from .serializers import AchievementSerializer, CatSerializer, UserSerializer
-
-from .permissions import OwnerOrReadOnly, ReadOnly
+from .permissions import OwnerOrReadOnly
+from .throttling import WorkingHoursRateThrottle
 
 
 class CatViewSet(viewsets.ModelViewSet):
     queryset = Cat.objects.all()
     serializer_class = CatSerializer
     permission_classes = (OwnerOrReadOnly,)
+    # throttle_classes = (AnonRateThrottle,)
+    # Если кастомный тротлинг-класс вернёт True - запросы будут обработаны
+    # Если он вернёт False - все запросы будут отклонены
+    throttle_classes = (WorkingHoursRateThrottle, ScopedRateThrottle)
+    # А далее применится лимит low_request
+    throttle_scope = 'low_request'
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
